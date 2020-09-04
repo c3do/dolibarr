@@ -27,6 +27,7 @@ create table llx_commandedet
   fk_parent_line				integer NULL,
   fk_product					integer	 NULL,
   label							varchar(255) DEFAULT NULL,
+  ref_ext           varchar(255) DEFAULT NULL,
   description					text,
   vat_src_code					varchar(10)  DEFAULT '',		 -- Vat code used as source of vat fields. Not strict foreign key here.
   tva_tx						double(6,3),	                 -- Vat rate
