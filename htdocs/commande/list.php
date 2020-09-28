@@ -65,10 +65,10 @@ $search_ref_customer = GETPOST('search_ref_customer', 'alpha');
 $search_company = GETPOST('search_company', 'alpha');
 $search_town = GETPOST('search_town', 'alpha');
 $search_zip = GETPOST('search_zip', 'alpha');
-$search_state = trim(GETPOST("search_state"));
+$search_state = GETPOST("search_state", 'alpha');
 $search_country = GETPOST("search_country", 'int');
 $search_type_thirdparty = GETPOST("search_type_thirdparty", 'int');
-$sall = trim((GETPOST('search_all', 'alphanohtml') != '') ?GETPOST('search_all', 'alphanohtml') : GETPOST('sall', 'alphanohtml'));
+$sall = trim((GETPOST('search_all', 'alphanohtml') != '') ? GETPOST('search_all', 'alphanohtml') : GETPOST('sall', 'alphanohtml'));
 $socid = GETPOST('socid', 'int');
 $search_user = GETPOST('search_user', 'int');
 $search_sale = GETPOST('search_sale', 'int');
@@ -82,9 +82,9 @@ $search_multicurrency_montant_ht = GETPOST('search_multicurrency_montant_ht', 'a
 $search_multicurrency_montant_vat = GETPOST('search_multicurrency_montant_vat', 'alpha');
 $search_multicurrency_montant_ttc = GETPOST('search_multicurrency_montant_ttc', 'alpha');
 $search_login = GETPOST('search_login', 'alpha');
-$search_categ_cus = trim(GETPOST("search_categ_cus", 'int'));
+$search_categ_cus = GETPOST("search_categ_cus", 'int');
 $optioncss = GETPOST('optioncss', 'alpha');
-$billed = GETPOST('billed', 'int');
+$search_billed = GETPOSTISSET('search_billed') ? GETPOST('search_billed', 'int') : GETPOST('billed', 'int');
 $search_status = GETPOST('search_status', 'int');
 $search_btn = GETPOST('button_search', 'alpha');
 $search_remove_btn = GETPOST('button_removefilter', 'alpha');
@@ -210,6 +210,7 @@ if (empty($reshook))
 		$search_total_ht = '';
 		$search_total_vat = '';
 		$search_total_ttc = '';
+		$search_warehouse = '';
 		$search_multicurrency_code = '';
 		$search_multicurrency_tx = '';
 		$search_multicurrency_montant_ht = '';
@@ -223,7 +224,7 @@ if (empty($reshook))
 		$search_project_ref = '';
 		$search_project = '';
 		$search_status = '';
-		$billed = '';
+		$search_billed = '';
 		$toselect = '';
 		$search_array_options = array();
 		$search_categ_cus = 0;
@@ -308,7 +309,7 @@ if (!$user->rights->societe->client->voir && !$socid) $sql .= " AND s.rowid = sc
 if ($search_ref) $sql .= natural_search('c.ref', $search_ref);
 if ($search_ref_customer) $sql .= natural_search('c.ref_client', $search_ref_customer);
 if ($sall) $sql .= natural_search(array_keys($fieldstosearchall), $sall);
-if ($billed != '' && $billed >= 0) $sql .= ' AND c.facture = '.$billed;
+if ($search_billed != '' && $search_billed >= 0) $sql .= ' AND c.facture = '.$search_billed;
 if ($search_status <> '')
 {
 	if ($search_status < 4 && $search_status > -3)
@@ -465,7 +466,7 @@ if ($resql)
 	if ($search_categ_cus > 0)      $param .= '&search_categ_cus='.urlencode($search_categ_cus);
 	if ($show_files)            	$param .= '&show_files='.urlencode($show_files);
 	if ($optioncss != '')       	$param .= '&optioncss='.urlencode($optioncss);
-	if ($billed != '')				$param .= '&billed='.urlencode($billed);
+	if ($search_billed != '')		$param .= '&search_billed='.urlencode($search_billed);
 
 	// Add $param from extra fields
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_param.tpl.php';
@@ -482,11 +483,9 @@ if ($resql)
 	if (in_array($massaction, array('presend', 'predelete', 'createbills'))) $arrayofmassactions = array();
 	$massactionbutton = $form->selectMassAction('', $arrayofmassactions);
 
-	$newcardbutton = '';
-	if ($contextpage == 'orderlist' && $user->rights->commande->creer)
-	{
-        $newcardbutton .= dolGetButtonTitle($langs->trans('NewOrder'), '', 'fa fa-plus-circle', DOL_URL_ROOT.'/commande/card.php?action=create');
-    }
+	$url = DOL_URL_ROOT.'/commande/card.php?action=create';
+	if (!empty($socid)) $url .= '&socid='.$socid;
+	$newcardbutton = dolGetButtonTitle($langs->trans('NewOrder'), '', 'fa fa-plus-circle', $url, '', $contextpage == 'orderlist' && $user->rights->commande->creer);
 
 	// Lines of title fields
 	print '<form method="POST" id="searchFormList" action="'.$_SERVER["PHP_SELF"].'">';
@@ -631,31 +630,31 @@ if ($resql)
 	if (!empty($arrayfields['c.ref']['checked']))
 	{
 		print '<td class="liste_titre">';
-		print '<input class="flat" size="6" type="text" name="search_ref" value="'.$search_ref.'">';
+		print '<input class="flat" size="6" type="text" name="search_ref" value="'.dol_escape_htmltag($search_ref).'">';
 		print '</td>';
 	}
 	// Ref customer
 	if (!empty($arrayfields['c.ref_client']['checked']))
 	{
 		print '<td class="liste_titre" align="left">';
-		print '<input class="flat" type="text" size="6" name="search_ref_customer" value="'.$search_ref_customer.'">';
+		print '<input class="flat" type="text" size="6" name="search_ref_customer" value="'.dol_escape_htmltag($search_ref_customer).'">';
 		print '</td>';
 	}
 	// Project ref
 	if (!empty($arrayfields['p.ref']['checked']))
 	{
-		print '<td class="liste_titre"><input type="text" class="flat" size="6" name="search_project_ref" value="'.$search_project_ref.'"></td>';
+		print '<td class="liste_titre"><input type="text" class="flat" size="6" name="search_project_ref" value="'.dol_escape_htmltag($search_project_ref).'"></td>';
 	}
 	// Project title
 	if (!empty($arrayfields['p.title']['checked']))
 	{
-	    print '<td class="liste_titre"><input type="text" class="flat" size="6" name="search_project" value="'.$search_project.'"></td>';
+	    print '<td class="liste_titre"><input type="text" class="flat" size="6" name="search_project" value="'.dol_escape_htmltag($search_project).'"></td>';
 	}
 	// Thirpdarty
 	if (!empty($arrayfields['s.nom']['checked']))
 	{
 		print '<td class="liste_titre" align="left">';
-		print '<input class="flat" type="text" name="search_company" value="'.$search_company.'">';
+		print '<input class="flat" type="text" name="search_company" value="'.dol_escape_htmltag($search_company).'">';
 		print '</td>';
 	}
 	// Town
@@ -688,12 +687,10 @@ if ($resql)
 	{
 		print '<td class="liste_titre center">';
 		print '<div class="nowrap">';
-		print $langs->trans('From').' ';
-		print $form->selectDate($search_dateorder_start ? $search_dateorder_start : -1, 'search_dateorder_start', 0, 0, 1);
+		print $form->selectDate($search_dateorder_start ? $search_dateorder_start : -1, 'search_dateorder_start', 0, 0, 1, '', 1, 0, 0, '', '', '', '', 1, '', $langs->trans('From'));
 		print '</div>';
 		print '<div class="nowrap">';
-		print $langs->trans('to').' ';
-		print $form->selectDate($search_dateorder_end ? $search_dateorder_end : -1, 'search_dateorder_end', 0, 0, 1);
+		print $form->selectDate($search_dateorder_end ? $search_dateorder_end : -1, 'search_dateorder_end', 0, 0, 1, '', 1, 0, 0, '', '', '', '', 1, '', $langs->trans('to'));
 		print '</div>';
 		print '</td>';
 	}
@@ -701,12 +698,10 @@ if ($resql)
 	{
 		print '<td class="liste_titre center">';
 		print '<div class="nowrap">';
-		print $langs->trans('From').' ';
-		print $form->selectDate($search_datedelivery_start ? $search_datedelivery_start : -1, 'search_datedelivery_start', 0, 0, 1);
+		print $form->selectDate($search_datedelivery_start ? $search_datedelivery_start : -1, 'search_datedelivery_start', 0, 0, 1, '', 1, 0, 0, '', '', '', '', 1, '', $langs->trans('From'));
 		print '</div>';
 		print '<div class="nowrap">';
-		print $langs->trans('to').' ';
-		print $form->selectDate($search_datedelivery_end ? $search_datedelivery_end : -1, 'search_datedelivery_end', 0, 0, 1);
+		print $form->selectDate($search_datedelivery_end ? $search_datedelivery_end : -1, 'search_datedelivery_end', 0, 0, 1, '', 1, 0, 0, '', '', '', '', 1, '', $langs->trans('to'));
 		print '</div>';
 		print '</td>';
 	}
@@ -714,14 +709,14 @@ if ($resql)
 	{
 		// Amount
 		print '<td class="liste_titre right">';
-		print '<input class="flat" type="text" size="4" name="search_total_ht" value="'.$search_total_ht.'">';
+		print '<input class="flat" type="text" size="4" name="search_total_ht" value="'.dol_escape_htmltag($search_total_ht).'">';
 		print '</td>';
 	}
 	if (!empty($arrayfields['c.total_vat']['checked']))
 	{
 		// Amount
 		print '<td class="liste_titre right">';
-		print '<input class="flat" type="text" size="4" name="search_total_vat" value="'.$search_total_vat.'">';
+		print '<input class="flat" type="text" size="4" name="search_total_vat" value="'.dol_escape_htmltag($search_total_vat).'">';
 		print '</td>';
 	}
 	if (!empty($arrayfields['c.total_ttc']['checked']))
@@ -754,7 +749,7 @@ if ($resql)
 	}
 	if (!empty($arrayfields['c.multicurrency_total_vat']['checked']))
 	{
-		// Amount
+		// Amount VAT
 		print '<td class="liste_titre right">';
 		print '<input class="flat" type="text" size="4" name="search_multicurrency_montant_vat" value="'.dol_escape_htmltag($search_multicurrency_montant_vat).'">';
 		print '</td>';
@@ -816,7 +811,7 @@ if ($resql)
 	if (!empty($arrayfields['c.facture']['checked']))
 	{
 		print '<td class="liste_titre maxwidthonsmartphone" align="center">';
-		print $form->selectyesno('billed', $billed, 1, 0, 1);
+		print $form->selectyesno('search_billed', $search_billed, 1, 0, 1);
 		print '</td>';
 	}
 	// Action column
@@ -1124,7 +1119,7 @@ if ($resql)
 		if (!empty($arrayfields['typent.code']['checked']))
 		{
 			print '<td class="center">';
-			if (count($typenArray) == 0) $typenArray = $formcompany->typent_array(1);
+			if (empty($typenArray)) $typenArray = $formcompany->typent_array(1);
 			print $typenArray[$obj->typent_code];
 			print '</td>';
 			if (!$i) $totalarray['nbfield']++;
